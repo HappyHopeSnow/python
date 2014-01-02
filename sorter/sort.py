@@ -88,7 +88,7 @@ class Sorter:
     def sort(self):
         pass
     
-    def set(self, conf):
+    def setConf(self, conf):
         if conf is not None:
             self.initialize(conf)
     
@@ -311,6 +311,6 @@ if __name__ == '__main__':
     conf = SorterConf()
     conf.setContainer(data)
     sorter = SorterFactory.getInstance(4)
-    sorter.set(conf);
+    sorter.setConf(conf);
     sorter.sort()
     print(sorter.numbers)
