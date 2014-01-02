@@ -1,33 +1,67 @@
+from abc import abstractmethod, ABCMeta
 
 class SorterConf:
-    def __init__(self, whichSorter, readIn=None, writeOut=None, 
-                 separator=',', topN=None, isAsc=True):
-        self.whichSorter = whichSorter
+    def __init__(self):
+        self.dataInFile = False
+        self.readIn = None
+        self.writeOut = None
+        self.delimeter = ','
+        self.topN = None
+        self.isAsc = True
+        self.container = []
+        
+    def isDataInFile(self, dataInFile=False):
+        self.dataInFile = dataInFile
+        
+    def setInputFile(self, readIn):
         self.readIn = readIn
+        
+    def setOutputFile(self, writeOut):
         self.writeOut = writeOut
-        self.separator = separator
-        self.topN = topN
+        
+    def isAscOrder(self, isAsc):
         self.isAsc = isAsc
+        
+    def setTopN(self, topN):
+        self.topN = topN
+        
+    def setDelimeter(self, delimeter):
+        self.delimeter = delimeter
+        
+    def setContainer(self, container):
+        self.container = container
+        
     
 class Sorter:
+    '''
+    Abstract sorter class, which provides shared methods being used by
+    subclasses.
+    '''
+    __metaclass__ = ABCMeta
     
-    def __init__(self, conf, data):
-        self.conf = conf
-        if conf is None or conf.readIn is None or conf.writeOut is None:
-            self.numbers = data
-        else:
-            self.numbers = []
-        self.size = len(self.numbers)
+
+    def initialize(self, conf):
+        if conf is not None:
+            self.conf = conf
+            if not conf.dataInFile:
+                self.numbers = conf.container
+            else:
+                self.numbers = []
+                self.readNumbers()
+            self.size = len(self.numbers)
+
+    def __init__(self, conf=None):
+        self.initialize(conf)
         
     '''
         Read numbers from a given file
     '''
-    def readNumbers(self, fConvert):
+    def readNumbers(self, fConverter=int):
         f = open(self.conf.readIn, 'r')
         for line in f.readlines():
             for num in line.strip().split(self.conf.separator):
                 try:
-                    self.numbers.append(fConvert(num))
+                    self.numbers.append(fConverter(num))
                 except:
                     print('Can not be parsed as a number, num=' + num)
         f.close();
@@ -49,28 +83,42 @@ class Sorter:
                 i = i - 1
             f.write(self.numbers[0])
         f.close() 
-            
     
+    @abstractmethod    
+    def sort(self):
+        pass
+    
+    def set(self, conf):
+        if conf is not None:
+            self.initialize(conf)
+    
+    def swap(self, i, j):
+        self.numbers[i], self.numbers[j] = self.numbers[j], self.numbers[i]
+
+
+class StraightInsertionSorter(Sorter):
     '''
-        Straight insertion sort function
+    Straight insertion sorter
     '''
-    def straightInsertionSort(self):
-        i = 1
-        while i<self.size:
-            tmp = self.numbers[i]
-            if self.numbers[i]<self.numbers[i-1]: 
-                j = i - 1
-                while j>=0 and tmp<self.numbers[j]:
-                    self.numbers[j+1] = self.numbers[j]
-                    j = j - 1
-                self.numbers[j+1] = tmp
-            i = i + 1 
-                
-            
+    def sort(self):
+        i = 0
+        while i<self.size -1:
+            k = i
+            j = i
+            while j<self.size:
+                if self.numbers[j]<self.numbers[k]:
+                    k = j
+                j = j + 1
+            if k!=i:
+                self.swap(k, i)
+            i = i + 1  
+
+
+class StraightSelectionSort(Sorter):
     '''
-        Straight selection sort function
+    Straight selection sorter
     '''
-    def straightSelectionSort(self ):
+    def sort(self ):
         i = 0
         while i<self.size -1:
             k = i
@@ -82,11 +130,13 @@ class Sorter:
             if k!=i:
                 self.swap(k, i)
             i = i + 1
-    
+   
+
+class BubbleSorter(Sorter):
     '''
-        Bubble sort function
+    Bubble sorter
     '''
-    def bubbleSort(self):
+    def sort(self):
         i = self.size - 1
         while i>=0:
             j = 1
@@ -95,17 +145,94 @@ class Sorter:
                     self.swap(j-1, j)
                 j = j + 1
             i = i - 1
+
     
-    def mergeSort(self ):
-        pass
-    
-    def quickSort(self):
-        pass
-    
+class MergeSorter(Sorter):
     '''
-        Shell sort function
+    Merge sorter
     '''
-    def shellSort(self):
+    def __init__(self, conf=None):
+        super(MergeSorter, self).__init__(conf)
+        
+    def sort(self):
+        # initialize auxiliary list
+        self.auxList = [0 for x in range(self.size)]
+        self.mergeSort(0, self.size - 1)
+    
+    def mergeSort(self, low, high):
+        dividedIndex = 0
+        if low<high:
+            dividedIndex = (low + high) / 2
+            self.mergeSort(low, dividedIndex)
+            self.mergeSort(dividedIndex + 1, high)
+            self.merge(low, dividedIndex, high)
+            
+    def merge(self, low, dividedIndex, high):
+        i = low
+        j = dividedIndex + 1
+        pointer = 0
+        while i<=dividedIndex and j<=high:
+            if self.numbers[i]>self.numbers[j]:
+                self.auxList[pointer] = self.numbers[j]
+                j = j + 1
+            else:
+                self.auxList[pointer] = self.numbers[i]
+                i = i + 1
+            pointer = pointer + 1
+        while i<=dividedIndex:
+            self.auxList[pointer] = self.numbers[i]
+            pointer = pointer + 1
+            i = i + 1
+        while j<=high:
+            self.auxList[pointer] = self.numbers[j]
+            pointer = pointer + 1
+            j = j + 1
+        # copy elements in auxiliary list to the original list
+        pointer = 0
+        i = low
+        while i<=high:
+            self.numbers[i] = self.auxList[pointer]
+            i = i + 1
+            pointer = pointer + 1
+            
+    
+class QuickSorter(Sorter):
+    '''
+    Quick sorter
+    '''
+    def sort(self):
+        self.quickSort(0, self.size - 1)
+    
+    def quickSort(self, low, high):
+        if low<high:
+            pivotPos = self.partition(low, high)
+            self.quickSort(low, pivotPos - 1)
+            self.quickSort(pivotPos + 1, high)
+        
+    def partition(self, i, j):
+        pivot = self.numbers[i]
+        while i<j:
+            # right side pointer moves to left
+            while j>i and self.numbers[j]>=pivot:
+                j = j - 1
+            if i<j:
+                self.numbers[i] = self.numbers[j]
+                i = i + 1
+            # left side pointer moves to right
+            while i<j and self.numbers[i]<=pivot:
+                i = i + 1
+            if i<j:
+                self.numbers[j] = self.numbers[i]
+                j = j - 1
+        # put the pivot element to the right position
+        self.numbers[i] = pivot
+        return i
+
+class ShellSorter(Sorter):
+    '''
+    Shell sorter
+    '''
+    def sort(self):
         d = self.size
         while d>1:
             d /= 2
@@ -120,39 +247,70 @@ class Sorter:
                         j = j - d
                     self.numbers[j+d] = tmp
                 i = i + 1
+
     
-    def heapSort(self):
-        pass
+class HeapSorter(Sorter):
+    '''
+    Heap sorter
+    '''      
+    def sort(self):
+        self.heapify()
+        i = 0
+        while i<self.size:
+            self.swap(0, self.size-1-i) 
+            self.siftDown(0, self.size-1-i)           
+            i = i + 1
     
-    def swap(self, i, j):
-        self.numbers[i], self.numbers[j] = self.numbers[j], self.numbers[i]
+    def heapify(self):
+        pos = (self.size-1) / 2
+        i = pos
+        while i>=0:
+            self.siftDown(i, self.size)
+            i = i - 1
+    
+    def siftDown(self, s, m):
+        tmp = self.numbers[s]
+        i = 2 * s + 1
+        while i<m:
+            if i+1<m and self.numbers[i]<self.numbers[i+1]:
+                i = i + 1
+            if self.numbers[s]<self.numbers[i]:
+                self.numbers[s] = self.numbers[i]
+                s = i
+                i = 2 * s + 1
+            else:
+                break
+            self.numbers[s] = tmp
 
 
-sorters = {
-    1 : 'straightInsertionSort',
-    2 : 'straightSelectionSort',
-    3 : 'bubbleSort',
-    4 : 'mergeSort',
-    5 : 'quickSort',
-    6 : 'shellSort',
-    7 : 'heapSort'
-}
+class SorterFactory:
+    '''
+        Manage Sorter implementation classes, as well as instances
+    '''
+    instances = {
+        1 : StraightInsertionSorter(),
+        2 : StraightSelectionSort(),
+        3 : BubbleSorter(),
+        4 : MergeSorter(),
+        5 : QuickSorter(),
+        6 : ShellSorter(),
+        7 : HeapSorter()
+    }
+    
+    @classmethod 
+    def getInstance(cls, sorterType):
+        instance = cls.instances.get(sorterType, None)
+        if instance is not None:
+            return instance
+        else:
+            raise BaseException('Unknown sorter type: ' + sorterType)
 
-def sort(self, whichSorter=1):
-    pass     
-    
-        
-    
-    
-    
-    
-    
 
 if __name__ == '__main__':
-    conf = SorterConf(1)
-    sorter = Sorter(conf, [9, 1, 7, 7, 4, 0, 3])
-#     sorter.straightInsertionSort()
-#     sorter.straightSelectionSort()
-#     sorter.bubbleSort()
-    sorter.shellSort()
+    data = [9, 1, 7, 7, 4, 0, 3, 8]
+    conf = SorterConf()
+    conf.setContainer(data)
+    sorter = SorterFactory.getInstance(4)
+    sorter.set(conf);
+    sorter.sort()
     print(sorter.numbers)
