@@ -3,8 +3,8 @@ from abc import abstractmethod, ABCMeta
 class SorterConf:
     def __init__(self):
         self.dataInFile = False
-        self.readIn = None
-        self.writeOut = None
+        self.fileIn = None
+        self.fileOut = None
         self.delimeter = ','
         self.topN = None
         self.isAsc = True
@@ -13,11 +13,11 @@ class SorterConf:
     def isDataInFile(self, dataInFile=False):
         self.dataInFile = dataInFile
         
-    def setInputFile(self, readIn):
-        self.readIn = readIn
+    def setFileIn(self, fileIn):
+        self.fileIn = fileIn
         
-    def setOutputFile(self, writeOut):
-        self.writeOut = writeOut
+    def setFileOut(self, fileOut):
+        self.fileOut = fileOut
         
     def isAscOrder(self, isAsc):
         self.isAsc = isAsc
@@ -57,9 +57,9 @@ class Sorter:
         Read numbers from a given file
     '''
     def readNumbers(self, fConverter=int):
-        f = open(self.conf.readIn, 'r')
+        f = open(self.conf.fileIn, 'r')
         for line in f.readlines():
-            for num in line.strip().split(self.conf.separator):
+            for num in line.strip().split(self.conf.delimeter):
                 try:
                     self.numbers.append(fConverter(num))
                 except:
@@ -70,16 +70,17 @@ class Sorter:
         Write sorted number to a given file
     '''
     def writeSortedNumbers(self):
-        f = open(self.conf.writeOut, 'w')
+        f = open(self.conf.fileOut, 'w')
         if self.conf.isAsc== True:
             i = 0
             while i<self.size:
-                f.write(self.numbers[i] + self.conf.separator)
-            f.write(self.numbers[self.size - 1])    
+                f.write(str(self.numbers[i]) + self.conf.delimeter)
+                i = i + 1
+            f.write(str(self.numbers[self.size - 1]))    
         else:
             i = self.size - 1
             while i>0:
-                f.write(self.numbers[i] + self.conf.separator)
+                f.write(str(self.numbers[i]) + self.conf.delimeter)
                 i = i - 1
             f.write(self.numbers[0])
         f.close() 
@@ -306,11 +307,44 @@ class SorterFactory:
             raise BaseException('Unknown sorter type: ' + sorterType)
 
 
-if __name__ == '__main__':
-    data = [9, 1, 7, 7, 4, 0, 3, 8]
+
+def testFromList(typeId, data):
+    '''
+    Test case:
+        data inputed from a given list object
+    '''
     conf = SorterConf()
     conf.setContainer(data)
-    sorter = SorterFactory.getInstance(4)
+    sorter = SorterFactory.getInstance(typeId)
     sorter.setConf(conf);
     sorter.sort()
     print(sorter.numbers)
+    
+
+def testFromFile(typeId, fileIn, fileOut):
+    '''
+    Test case:
+        data inputed from a given file
+    '''
+    conf = SorterConf()
+    conf.isDataInFile(True)
+    conf.setFileIn(fileIn)
+    conf.setFileOut(fileOut)
+    sorter = SorterFactory.getInstance(typeId)
+    sorter.setConf(conf);
+    sorter.sort()
+    print(sorter.numbers)
+    sorter.writeSortedNumbers()
+
+
+if __name__ == '__main__':
+    # test data from a given list
+    typeId = 4
+    data = [9, 1, 7, 7, 4, 0, 3, 8]
+    testFromList(typeId, data)
+    
+    # test data from a given file
+    typeId = 7
+    fileIn = r'C:\Users\thinkpad\Desktop\numbersIn.txt'
+    fileOut = r'C:\Users\thinkpad\Desktop\numbersOut.txt'
+    testFromFile(typeId, fileIn, fileOut)
