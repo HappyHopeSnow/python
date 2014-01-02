@@ -1,6 +1,9 @@
 from abc import abstractmethod, ABCMeta
 
 class SorterConf:
+    '''
+    Sorter configuration object.
+    '''
     def __init__(self):
         self.dataInFile = False
         self.fileIn = None
@@ -39,7 +42,6 @@ class Sorter:
     '''
     __metaclass__ = ABCMeta
     
-
     def initialize(self, conf):
         if conf is not None:
             self.conf = conf
@@ -64,26 +66,36 @@ class Sorter:
                     self.numbers.append(fConverter(num))
                 except:
                     print('Can not be parsed as a number, num=' + num)
-        f.close();
+        f.close()
     
     '''
         Write sorted number to a given file
     '''
     def writeSortedNumbers(self):
         f = open(self.conf.fileOut, 'w')
+        # count of numbers being returned 
+        numCnt = self.getActualTopN()
         if self.conf.isAsc== True:
             i = 0
-            while i<self.size:
+            while i<numCnt-1:
                 f.write(str(self.numbers[i]) + self.conf.delimeter)
                 i = i + 1
-            f.write(str(self.numbers[self.size - 1]))    
+            f.write(str(self.numbers[numCnt - 1]))    
         else:
             i = self.size - 1
-            while i>0:
+            cnt = 0
+            while i>=0 and cnt<numCnt-1:
+                cnt = cnt + 1
                 f.write(str(self.numbers[i]) + self.conf.delimeter)
                 i = i - 1
-            f.write(self.numbers[0])
+            f.write(str(self.numbers[i - 1]))
         f.close() 
+    
+    def getActualTopN(self):
+        numCnt = self.size
+        if self.conf.topN is not None and self.conf.topN<self.size:
+            numCnt = self.conf.topN
+        return numCnt
     
     @abstractmethod    
     def sort(self):
@@ -321,7 +333,7 @@ def testFromList(typeId, data):
     print(sorter.numbers)
     
 
-def testFromFile(typeId, fileIn, fileOut):
+def testFromFile(typeId, fileIn, fileOut, isAsc=None, topN=None):
     '''
     Test case:
         data inputed from a given file
@@ -330,6 +342,10 @@ def testFromFile(typeId, fileIn, fileOut):
     conf.isDataInFile(True)
     conf.setFileIn(fileIn)
     conf.setFileOut(fileOut)
+    if isAsc is not None:
+        conf.isAscOrder(isAsc)
+    if topN is not None:
+        conf.setTopN(topN)
     sorter = SorterFactory.getInstance(typeId)
     sorter.setConf(conf);
     sorter.sort()
@@ -345,6 +361,8 @@ if __name__ == '__main__':
     
     # test data from a given file
     typeId = 7
+    isAsc = False
+    topN = 5
     fileIn = r'C:\Users\thinkpad\Desktop\numbersIn.txt'
     fileOut = r'C:\Users\thinkpad\Desktop\numbersOut.txt'
-    testFromFile(typeId, fileIn, fileOut)
+    testFromFile(typeId, fileIn, fileOut, isAsc, topN)
