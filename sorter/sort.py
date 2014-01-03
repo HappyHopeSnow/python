@@ -50,7 +50,7 @@ class Sorter:
             else:
                 self.numbers = []
                 self.readNumbers()
-            self.size = len(self.numbers)
+            self.length = len(self.numbers)
 
     def __init__(self, conf=None):
         self.initialize(conf)
@@ -82,7 +82,7 @@ class Sorter:
                 i = i + 1
             f.write(str(self.numbers[numCnt - 1]))    
         else:
-            i = self.size - 1
+            i = self.length - 1
             cnt = 0
             while i>=0 and cnt<numCnt-1:
                 cnt = cnt + 1
@@ -92,8 +92,8 @@ class Sorter:
         f.close() 
     
     def getActualTopN(self):
-        numCnt = self.size
-        if self.conf.topN is not None and self.conf.topN<self.size:
+        numCnt = self.length
+        if self.conf.topN is not None and self.conf.topN<self.length:
             numCnt = self.conf.topN
         return numCnt
     
@@ -115,10 +115,10 @@ class StraightInsertionSorter(Sorter):
     '''
     def sort(self):
         i = 0
-        while i<self.size -1:
+        while i<self.length -1:
             k = i
             j = i
-            while j<self.size:
+            while j<self.length:
                 if self.numbers[j]<self.numbers[k]:
                     k = j
                 j = j + 1
@@ -133,10 +133,10 @@ class StraightSelectionSort(Sorter):
     '''
     def sort(self ):
         i = 0
-        while i<self.size -1:
+        while i<self.length -1:
             k = i
             j = i
-            while j<self.size:
+            while j<self.length:
                 if self.numbers[j]<self.numbers[k]:
                     k = j
                 j = j + 1
@@ -150,7 +150,7 @@ class BubbleSorter(Sorter):
     Bubble sorter
     '''
     def sort(self):
-        i = self.size - 1
+        i = self.length - 1
         while i>=0:
             j = 1
             while j<=i:
@@ -169,8 +169,8 @@ class MergeSorter(Sorter):
         
     def sort(self):
         # initialize auxiliary list
-        self.auxList = [0 for x in range(self.size)]
-        self.mergeSort(0, self.size - 1)
+        self.auxList = [0 for x in range(self.length)]
+        self.mergeSort(0, self.length - 1)
     
     def mergeSort(self, low, high):
         dividedIndex = 0
@@ -214,7 +214,7 @@ class QuickSorter(Sorter):
     Quick sorter
     '''
     def sort(self):
-        self.quickSort(0, self.size - 1)
+        self.quickSort(0, self.length - 1)
     
     def quickSort(self, low, high):
         if low<high:
@@ -246,12 +246,12 @@ class ShellSorter(Sorter):
     Shell sorter
     '''
     def sort(self):
-        d = self.size
+        d = self.length
         while d>1:
             d /= 2
             i = d
             # for each d, execute one pass shell sort
-            while i<self.size:
+            while i<self.length:
                 tmp = self.numbers[i]
                 if self.numbers[i]<self.numbers[i-d]:
                     j = i - d
@@ -269,16 +269,16 @@ class HeapSorter(Sorter):
     def sort(self):
         self.heapify()
         i = 0
-        while i<self.size:
-            self.swap(0, self.size-1-i) 
-            self.siftDown(0, self.size-1-i)           
+        while i<self.length:
+            self.swap(0, self.length-1-i) 
+            self.siftDown(0, self.length-1-i)           
             i = i + 1
     
     def heapify(self):
-        pos = (self.size-1) / 2
+        pos = (self.length-1) / 2
         i = pos
         while i>=0:
-            self.siftDown(i, self.size)
+            self.siftDown(i, self.length)
             i = i - 1
     
     def siftDown(self, s, m):
