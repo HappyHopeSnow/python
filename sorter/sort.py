@@ -59,7 +59,10 @@ class Sorter:
         Read numbers from a given file
     '''
     def readNumbers(self, fConverter=int):
-        f = open(self.conf.fileIn, 'r')
+        try:
+            f = open(self.conf.fileIn, 'r')
+        except:
+            raise IOError('Error to open file: ' + self.conf.fileIn)
         for line in f.readlines():
             for num in line.strip().split(self.conf.delimeter):
                 try:
@@ -321,7 +324,7 @@ class SorterFactory:
         if instance is not None:
             return instance
         else:
-            raise BaseException('Unknown sorter type: ' + sorterType)
+            raise ValueError('Unknown sorter type: ' + sorterType)
 
 
 
@@ -365,7 +368,7 @@ if __name__ == '__main__':
     testFromList(typeId, data)
     
     # test data from a given file
-    typeId = 7
+    typeId = 6
     isAsc = False
     topN = 5
     fileIn = r'C:\Users\thinkpad\Desktop\numbersIn.txt'
