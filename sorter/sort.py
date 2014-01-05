@@ -166,6 +166,8 @@ class MergeSorter(Sorter):
     '''
     def __init__(self, conf=None):
         super(MergeSorter, self).__init__(conf)
+#         self.low = 0;
+#         self.high = self.length - 1
         
     def sort(self):
         # initialize auxiliary list
@@ -175,7 +177,7 @@ class MergeSorter(Sorter):
     def mergeSort(self, low, high):
         dividedIndex = 0
         if low<high:
-            dividedIndex = (low + high) / 2
+            dividedIndex = (low + high) // 2
             self.mergeSort(low, dividedIndex)
             self.mergeSort(dividedIndex + 1, high)
             self.merge(low, dividedIndex, high)
@@ -248,7 +250,7 @@ class ShellSorter(Sorter):
     def sort(self):
         d = self.length
         while d>1:
-            d /= 2
+            d //= 2
             i = d
             # for each d, execute one pass shell sort
             while i<self.length:
@@ -275,7 +277,7 @@ class HeapSorter(Sorter):
             i = i + 1
     
     def heapify(self):
-        pos = (self.length-1) / 2
+        pos = (self.length-1) // 2
         i = pos
         while i>=0:
             self.siftDown(i, self.length)
@@ -298,7 +300,7 @@ class HeapSorter(Sorter):
 
 class SorterFactory:
     '''
-        Manage Sorter implementation classes, as well as instances
+    Manage Sorter implementation classes, as well as instances
     '''
     instances = {
         1 : StraightInsertionSorter(),
@@ -313,6 +315,9 @@ class SorterFactory:
     @classmethod 
     def getInstance(cls, sorterType):
         instance = cls.instances.get(sorterType, None)
+        template = 'Sorter detail: TYPE = {0}, CLASS = {1}'
+        fmt = template.format(sorterType, instance.__class__.__name__)
+        print(fmt)
         if instance is not None:
             return instance
         else:
