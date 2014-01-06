@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+import copy
 from socket import socket
 
 
@@ -8,11 +9,21 @@ class TaskConf:
     '''
     def __init__(self, domain):
         self.domain = domain
+        self.seed_task = None
         self.priority = 0
-        self.maxDepth = 0
-        self.crossHostAllowed = False
-        self.connectTimeout = 3000
-        self.socketTimeout = 30000
+        self.max_depth = 0
+        self.cross_host_allowed = False
+        self.connect_timeout = 3000
+        self.socket_timeout = 30000
+    
+    @classmethod
+    def clone(self, task_conf):
+        copier = None
+        if task_conf:
+            copier = copy.deepcopy(task_conf)
+        return copier
+        
+    
 
 class Task:
     '''
@@ -20,16 +31,15 @@ class Task:
     '''
     __metaclass__ = ABCMeta
     
-    def __init__(self):
-        self.depth = 0
+    def __init__(self, task_conf):
+        self.task_conf = task_conf
+        self.domain = task_conf.domain
         self.url = None
+        self.ip = None
     
     @abstractmethod
     def check(self):
         pass
-    
-    def getUrl(self):
-        return self.url
     
     
 class SeedTask(Task):
@@ -37,12 +47,11 @@ class SeedTask(Task):
     A task encapsulates crawler related resources before starting
     to crawl pages of a domain.
     '''
-    def __init__(self, taskConf):
-        super(SeedTask, self).__init__()
-        self.taskConf = taskConf
+    def __init__(self, task_conf):
+        super(SeedTask, self).__init__(task_conf)
         # check invalidation of a domain
-        domain = taskConf.domain
-        if domain is None:
+        domain = self.task_conf.domain
+        if not domain:
             raise ValueError('Inputed domain is None!')
         if domain.startswith('https://'):
             raise ValueError('Unsupported HTTPS link!')
@@ -57,9 +66,9 @@ class UrlTask(Task):
     A task encapsulates crawler related url resources before starting
     to crawl pages represented by a url.
     '''
-    def __init__(self, seedTask):
-        super(UrlTask, self).__init__()
-        self.seedTask = seedTask
+    def __init__(self, task_conf):
+        super(UrlTask, self).__init__(task_conf)
+        self.seed_task = self.task_conf.seed_task
         
 
 class TaskFactory:
@@ -67,14 +76,13 @@ class TaskFactory:
     Build tasks from a given file.
     Here tasks has 2 types: SeedTask and UrlTask.
     '''
-    
     @classmethod
-    def buildSeeds(cls, taskFile):
-        seedTasks = []
+    def build_seeds(cls, task_file):
+        seed_tasks = []
         try:
-            f = open(taskFile, 'r')
+            f = open(task_file, 'r')
         except:
-            raise IOError('Error to open file: ' + taskFile)
+            raise IOError('Error to open file: ' + task_file)
         for line in f:
             if line.strip().startswith('#'):
                 continue
@@ -82,34 +90,44 @@ class TaskFactory:
             if len(a) == 5:
                 domain = a[0].lower()
                 # domain
-                taskConf = TaskConf(domain)
+                task_conf = TaskConf(domain)
                 # priority
-                taskConf.priority = int(a[1])
+                task_conf.priority = int(a[1])
                 # maxDepth
-                taskConf.maxDepth = int(a[2])
+                task_conf.max_depth = int(a[2])
                 # crossHostAllowed
                 if a[3].lower() == 'true':
-                    taskConf.crossHostAllowed = True
-                elif a[4].lower() == 'false':
-                    taskConf.crossHostAllowed = False
+                    task_conf.cross_host_allowed = True
+                elif a[3].lower() == 'false':
+                    task_conf.cross_host_allowed = False
                 # connectionTimeout
-                taskConf.connectTimeout = int(a[5])
+                task_conf.connect_timeout = int(a[4])
                 # socketTimeout
-                taskConf.socketTimeout = int(a[6])
-                seedTask = SeedTask(taskConf)
-                seedTasks.append(seedTask)
+                task_conf.socket_timeout = int(a[5])
+                seed_task = SeedTask(task_conf)
+                seed_tasks.append(seed_task)
         f.close()
-        return seedTasks
+        return seed_tasks
     
     @classmethod
-    def buildUrlTasks(cls, crawlResult):
-        urlTasks = []
-        depth = crawlResult.urlTask.depth
-        data = crawlResult.data
-        responseHeaders = crawlResult.responseHeaders
-        # extract url from the source code of a page
-        
-        return urlTasks
+    def build_url_tasks(cls, seed_task=None, crawl_result=None):
+        url_tasks = []
+        if not seed_task and not crawl_result:
+            return url_tasks
+        if seed_task:
+            url_task = UrlTask(seed_task.task_conf)
+            url_tasks.append(url_task)
+        else:
+            if crawl_result:
+                parent = crawl_result.url_task
+                if not parent:
+                    parent = UrlTask()
+                    parent.set_seed
+                depth = parent.depth
+            data = crawl_result.data
+            # extract url from the source code of a page
+            
+        return url_tasks
         
         
     

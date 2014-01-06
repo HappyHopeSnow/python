@@ -1,12 +1,20 @@
 from abc import ABCMeta, abstractmethod
-from socket import socket
-from urllib import request
-# from http.client import HTTPConnection
 
+from crawler.common.task import TaskFactory
+from crawler.http.client import DefaultHttpEngine
 from crawler.utils.sequences import UniqIdGenerator
-from urllib.error import HTTPError
 
 
+class CrawlerConf:
+    '''
+    Configure a crawler's behaviors.
+    '''
+    def __init__(self):
+        self.engine = DefaultHttpEngine()
+        self.max_depth = 1
+        
+
+# from http.client import HTTPConnection
 class Crawler:
     '''
     Abstract crawler, which provides the basic behaviors
@@ -15,28 +23,24 @@ class Crawler:
     '''
     __metaclass__ = ABCMeta
     
-    def __init__(self, conf=None):
-        self.conf = conf
+    def __init__(self, crawler_conf=None):
+        self.crawler_conf = crawler_conf
         
-    def setConf(self, conf):
-        self.conf = conf
-    
     @abstractmethod
     def crawl(self, task):
         pass
-    
-    @abstractmethod
-    def getResult(self):
-        pass
+
     
 class CrawlResult:
     '''
     The result of a crawler fetching a page.
     '''
-    def __init__(self, urlTask):
-        self.urlTask = urlTask
+    def __init__(self, url_task):
+        self.url_task = url_task
         self.data = None
-        self.statusCode = None
+        self.status_code = None
+        self.charset = 'UTF-8'
+        self.urls = []
         
 
 class DefaultCrawler(Crawler):
@@ -45,34 +49,35 @@ class DefaultCrawler(Crawler):
     References:
     1. http://en.wikipedia.org/wiki/List_of_HTTP_header_fields
     '''
-
-    reqHeaders = {
-        'User-Agent' : 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;'
-    }
-    
     def __init__(self, conf, name=None):
         super(DefaultCrawler, self).__init__(conf)
         self.name = name
-        if name is None:
-            name  = str(UniqIdGenerator.nextId(__name__))
+        if not name:
+            seed = self.__class__.__name__
+            name  = str(UniqIdGenerator.next_id(seed))
             
-    def crawl(self, seedTask):
-        url = seedTask.getUrl()
-        #connection = HTTPConnection()
-        socketTimeout = socket.socket._GLOBAL_DEFAULT_TIMEOUT
-        if seedTask.taskConf is not None:
-            socketTimeout = seedTask.taskConf.socketTimeout
-        req = request.Request(url, headers=DefaultCrawler.reqHeaders)
-        
-        result = CrawlResult()
-        try:
-            u = request.urlopen(req, socketTimeout)
-        except HTTPError as e:
-            result.statusCode = e.code
-        else:
-            response = u.read()
-            if response is not None:
-                result.data = response
+    def crawl(self, seed_task):
+        # build urlTask from a seedTask
+        tasks = TaskFactory.build_url_tasks(seed_task)
+        if tasks and len(tasks) == 1:
+            task = tasks[0]
+            # compute max depth of crawling pages
+            max_depth = self.crawler_conf.max_depth
+            if task.task_conf.max_depth:
+                # override default max depth configuration
+                max_depth = task.task_conf.max_depth
+            depth = 0
+            while depth <= max_depth:
+                result = self.crawler_conf.engine.fetch(task)
+                # save result
+                # TODO
+                if result:
+                    url_tasks = TaskFactory.build_url_tasks(seed_task, result);
+                    for url_Task in url_tasks:
+                        result = self.crawler_conf.engine().fetch(url_Task)
+                        # save result
+                        # TODO
+                depth = depth + 1
+                
         
 
-  

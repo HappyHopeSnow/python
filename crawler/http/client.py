@@ -1,3 +1,49 @@
+from abc import ABCMeta, abstractmethod
+from socket import socket
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+from crawler.common.crawler import CrawlResult
+
+
+class HttpEngine:
+    '''
+    '''
+    __metaclass__ = ABCMeta
+    
+    @abstractmethod
+    def fetch(self, url_task):
+        pass
+
+
+class DefaultHttpEngine(HttpEngine):
+    '''
+    '''
+    reqHeaders = {
+        'User-Agent' : 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0;'
+    }
+    
+    def __init__(self):
+        pass
+    
+    def fetch(self, url_task):
+        url = url_task.get_url()
+        socket_timeout = socket.socket._GLOBAL_DEFAULT_TIMEOUT
+        if url_task.seed_task.task_conf:
+            socket_timeout = url_task.seed_task.task_conf.socket_timeout
+        req = Request(url, headers=DefaultHttpEngine.reqHeaders)
+        result = CrawlResult()
+        try:
+            u = urlopen(req, socket_timeout)
+        except HTTPError as e:
+            result.status_code = e.code
+        else:
+            response = u.read()
+            if response:
+                result.data = response
+        return result
+
+
 class HTTPStatusCode:
     # Table mapping response codes to messages; entries have the
     # form {code: (shortmessage, longmessage)}.
