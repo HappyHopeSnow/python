@@ -169,10 +169,10 @@ class MergeSorter(Sorter):
     '''
     def __init__(self, conf=None):
         super(MergeSorter, self).__init__(conf)
-        # initialize auxiliary list
-        self.auxList = [0 for x in range(self.length)]
         
     def sort(self):
+        # initialize auxiliary list
+        self.auxList = [0 for x in range(self.length)]
         self.mergeSort(0, self.length - 1)
     
     def mergeSort(self, low, high):
