@@ -43,7 +43,7 @@ class Sorter:
     __metaclass__ = ABCMeta
     
     def initialize(self, conf):
-        if conf is not None:
+        if conf:
             self.conf = conf
             if not conf.dataInFile:
                 self.numbers = conf.container
@@ -78,7 +78,7 @@ class Sorter:
         f = open(self.conf.fileOut, 'w')
         # count of numbers being returned 
         numCnt = self.getActualTopN()
-        if self.conf.isAsc== True:
+        if self.conf.isAsc == True:
             i = 0
             while i<numCnt-1:
                 f.write(str(self.numbers[i]) + self.conf.delimeter)
@@ -105,7 +105,7 @@ class Sorter:
         pass
     
     def setConf(self, conf):
-        if conf is not None:
+        if conf:
             self.initialize(conf)
     
     def swap(self, i, j):
@@ -321,7 +321,7 @@ class SorterFactory:
         template = 'Sorter detail: TYPE = {0}, CLASS = {1}'
         fmt = template.format(sorterType, instance.__class__.__name__)
         print(fmt)
-        if instance is not None:
+        if instance:
             return instance
         else:
             raise ValueError('Unknown sorter type: ' + sorterType)
@@ -350,9 +350,9 @@ def testFromFile(typeId, fileIn, fileOut, isAsc=None, topN=None):
     conf.isDataInFile(True)
     conf.setFileIn(fileIn)
     conf.setFileOut(fileOut)
-    if isAsc is not None:
+    if isAsc:
         conf.isAscOrder(isAsc)
-    if topN is not None:
+    if topN:
         conf.setTopN(topN)
     sorter = SorterFactory.getInstance(typeId)
     sorter.setConf(conf);
