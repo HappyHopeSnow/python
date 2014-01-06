@@ -5,34 +5,14 @@ class SorterConf:
     Sorter configuration object.
     '''
     def __init__(self):
-        self.dataInFile = False
-        self.fileIn = None
-        self.fileOut = None
+        self.is_data_in_file = False
+        self.file_in = None
+        self.file_out = None
         self.delimeter = ','
-        self.topN = None
-        self.isAsc = True
+        self.top_n = None
+        self.is_asc_order = True
         self.container = []
-        
-    def isDataInFile(self, dataInFile=False):
-        self.dataInFile = dataInFile
-        
-    def setFileIn(self, fileIn):
-        self.fileIn = fileIn
-        
-    def setFileOut(self, fileOut):
-        self.fileOut = fileOut
-        
-    def isAscOrder(self, isAsc):
-        self.isAsc = isAsc
-        
-    def setTopN(self, topN):
-        self.topN = topN
-        
-    def setDelimeter(self, delimeter):
-        self.delimeter = delimeter
-        
-    def setContainer(self, container):
-        self.container = container
+        self.f_converter = int
         
     
 class Sorter:
@@ -42,71 +22,84 @@ class Sorter:
     '''
     __metaclass__ = ABCMeta
     
-    def initialize(self, conf):
+    def __init__(self, conf=None):
+        self.__initialize(conf)
+        
+    def __initialize(self, conf):
         if conf:
             self.conf = conf
-            if not conf.dataInFile:
+            if not conf.is_data_in_file:
                 self.numbers = conf.container
             else:
                 self.numbers = []
-                self.readNumbers()
+                self.__read_numbers()
             self.length = len(self.numbers)
-
-    def __init__(self, conf=None):
-        self.initialize(conf)
-        
+    
     '''
         Read numbers from a given file
     '''
-    def readNumbers(self, fConverter=int):
+    def __read_numbers(self, f_converter=int):
         try:
-            f = open(self.conf.fileIn, 'r')
+            f = open(self.conf.file_in, 'r')
         except:
-            raise IOError('Error to open file: ' + self.conf.fileIn)
+            raise IOError('Error to open file: ' + self.conf.file_in)
         for line in f.readlines():
             for num in line.strip().split(self.conf.delimeter):
                 try:
-                    self.numbers.append(fConverter(num))
+                    self.numbers.append(f_converter(num))
                 except:
                     print('Can not be parsed as a number, num=' + num)
         f.close()
+        
+    def output(self):
+        if self.conf.is_data_in_file:
+            self.__write_sorted_numbers()
+        else:
+            self.__print_container()
+            
+    def __print_container(self):
+        num_cnt = self.__get_actual_top_n()
+        if self.conf.is_asc_order:
+            print(self.numbers[:num_cnt])
+        else:
+            print(list(reversed(self.numbers))[:num_cnt])
     
     '''
         Write sorted number to a given file
     '''
-    def writeSortedNumbers(self):
-        f = open(self.conf.fileOut, 'w')
+    def __write_sorted_numbers(self):
+        f = open(self.conf.file_out, 'w')
         # count of numbers being returned 
-        numCnt = self.getActualTopN()
-        if self.conf.isAsc == True:
+        num_cnt = self.__get_actual_top_n()
+        if self.conf.is_asc_order == True:
             i = 0
-            while i<numCnt-1:
+            while i<num_cnt-1:
                 f.write(str(self.numbers[i]) + self.conf.delimeter)
                 i = i + 1
-            f.write(str(self.numbers[numCnt - 1]))    
+            f.write(str(self.numbers[num_cnt - 1]))    
         else:
             i = self.length - 1
             cnt = 0
-            while i>=0 and cnt<numCnt-1:
+            while i>=0 and cnt<num_cnt-1:
                 cnt = cnt + 1
                 f.write(str(self.numbers[i]) + self.conf.delimeter)
                 i = i - 1
             f.write(str(self.numbers[i - 1]))
         f.close() 
     
-    def getActualTopN(self):
-        numCnt = self.length
-        if self.conf.topN is not None and self.conf.topN<self.length:
-            numCnt = self.conf.topN
-        return numCnt
+    def __get_actual_top_n(self):
+        num_cnt = self.length
+        if self.conf.top_n and self.conf.top_n<self.length:
+            num_cnt = self.conf.top_n
+        return num_cnt
     
     @abstractmethod    
     def sort(self):
         pass
     
-    def setConf(self, conf):
+    def set_conf(self, conf):
         if conf:
-            self.initialize(conf)
+            self.__initialize(conf)
     
     def swap(self, i, j):
         self.numbers[i], self.numbers[j] = self.numbers[j], self.numbers[i]
@@ -172,42 +165,42 @@ class MergeSorter(Sorter):
         
     def sort(self):
         # initialize auxiliary list
-        self.auxList = [0 for x in range(self.length)]
-        self.mergeSort(0, self.length - 1)
+        self.__auxiliary_list = [0 for x in range(self.length)]
+        self.__merge_sort(0, self.length - 1)
     
-    def mergeSort(self, low, high):
+    def __merge_sort(self, low, high):
         dividedIndex = 0
         if low<high:
             dividedIndex = (low + high) // 2
-            self.mergeSort(low, dividedIndex)
-            self.mergeSort(dividedIndex + 1, high)
-            self.merge(low, dividedIndex, high)
+            self.__merge_sort(low, dividedIndex)
+            self.__merge_sort(dividedIndex + 1, high)
+            self.__merge(low, dividedIndex, high)
             
-    def merge(self, low, dividedIndex, high):
+    def __merge(self, low, dividedIndex, high):
         i = low
         j = dividedIndex + 1
         pointer = 0
         while i<=dividedIndex and j<=high:
             if self.numbers[i]>self.numbers[j]:
-                self.auxList[pointer] = self.numbers[j]
+                self.__auxiliary_list[pointer] = self.numbers[j]
                 j = j + 1
             else:
-                self.auxList[pointer] = self.numbers[i]
+                self.__auxiliary_list[pointer] = self.numbers[i]
                 i = i + 1
             pointer = pointer + 1
         while i<=dividedIndex:
-            self.auxList[pointer] = self.numbers[i]
+            self.__auxiliary_list[pointer] = self.numbers[i]
             pointer = pointer + 1
             i = i + 1
         while j<=high:
-            self.auxList[pointer] = self.numbers[j]
+            self.__auxiliary_list[pointer] = self.numbers[j]
             pointer = pointer + 1
             j = j + 1
         # copy elements in auxiliary list to the original list
         pointer = 0
         i = low
         while i<=high:
-            self.numbers[i] = self.auxList[pointer]
+            self.numbers[i] = self.__auxiliary_list[pointer]
             i = i + 1
             pointer = pointer + 1
             
@@ -217,15 +210,15 @@ class QuickSorter(Sorter):
     Quick sorter
     '''
     def sort(self):
-        self.quickSort(0, self.length - 1)
+        self.__quick_sort(0, self.length - 1)
     
-    def quickSort(self, low, high):
+    def __quick_sort(self, low, high):
         if low<high:
-            pivotPos = self.partition(low, high)
-            self.quickSort(low, pivotPos - 1)
-            self.quickSort(pivotPos + 1, high)
+            pivotPos = self.__partition(low, high)
+            self.__quick_sort(low, pivotPos - 1)
+            self.__quick_sort(pivotPos + 1, high)
         
-    def partition(self, i, j):
+    def __partition(self, i, j):
         pivot = self.numbers[i]
         while i<j:
             # right side pointer moves to left
@@ -270,21 +263,21 @@ class HeapSorter(Sorter):
     Heap sorter
     '''      
     def sort(self):
-        self.heapify()
+        self.__heapify()
         i = 0
         while i<self.length:
             self.swap(0, self.length-1-i) 
-            self.siftDown(0, self.length-1-i)           
+            self.__sift_down(0, self.length-1-i)           
             i = i + 1
     
-    def heapify(self):
+    def __heapify(self):
         pos = (self.length-1) // 2
         i = pos
         while i>=0:
-            self.siftDown(i, self.length)
+            self.__sift_down(i, self.length)
             i = i - 1
     
-    def siftDown(self, s, m):
+    def __sift_down(self, s, m):
         tmp = self.numbers[s]
         i = 2 * s + 1
         while i<m:
@@ -303,7 +296,7 @@ class SorterFactory:
     '''
     Manage Sorter implementation classes, as well as instances
     '''
-    instances = {
+    __instances = {
         1 : StraightInsertionSorter(),
         2 : StraightSelectionSort(),
         3 : BubbleSorter(),
@@ -314,61 +307,65 @@ class SorterFactory:
     }
     
     @classmethod 
-    def getInstance(cls, sorterType):
-        instance = cls.instances.get(sorterType, None)
+    def get_instance(cls, sorter_type):
+        instance = cls.__instances.get(sorter_type, None)
         template = 'Sorter detail: TYPE = {0}, CLASS = {1}'
         if instance:
-            fmt = template.format(sorterType, instance.__class__.__name__)
+            fmt = template.format(sorter_type, instance.__class__.__name__)
             print(fmt)
             return instance
         else:
-            raise ValueError('Unknown sorter type: ' + sorterType)
+            raise ValueError('Unknown sorter type: ' + sorter_type)
 
 
 
-def testFromList(typeId, data):
+def test_from_list(type_id, data, is_asc_order, top_n):
     '''
     Test case:
         data inputed from a given list object
     '''
     conf = SorterConf()
-    conf.setContainer(data)
-    sorter = SorterFactory.getInstance(typeId)
-    sorter.setConf(conf);
+    conf.container = data
+    if is_asc_order is not None:
+        conf.is_asc_order = is_asc_order
+    if top_n:
+        conf.top_n = top_n
+    sorter = SorterFactory.get_instance(type_id)
+    sorter.set_conf(conf);
     sorter.sort()
-    print(sorter.numbers)
+    sorter.output()
     
 
-def testFromFile(typeId, fileIn, fileOut, isAsc=None, topN=None):
+def test_from_file(type_id, file_in, file_out, is_asc_order, top_n):
     '''
     Test case:
         data inputed from a given file
     '''
     conf = SorterConf()
-    conf.isDataInFile(True)
-    conf.setFileIn(fileIn)
-    conf.setFileOut(fileOut)
-    if isAsc:
-        conf.isAscOrder(isAsc)
-    if topN:
-        conf.setTopN(topN)
-    sorter = SorterFactory.getInstance(typeId)
-    sorter.setConf(conf);
+    conf.is_data_in_file = True
+    conf.file_in = file_in
+    conf.file_out = file_out
+    conf.f_converter = float
+    if is_asc_order is not None:
+        conf.is_asc_order = is_asc_order
+    if top_n:
+        conf.top_n = top_n
+    sorter = SorterFactory.get_instance(type_id)
+    sorter.set_conf(conf);
     sorter.sort()
-    print(sorter.numbers)
-    sorter.writeSortedNumbers()
+    sorter.output()
 
 
 if __name__ == '__main__':
     # test data from a given list
-    typeId = 4
+    type_id = 4
     data = [9, 1, 7, 7, 4, 0, 3, 8]
-    testFromList(typeId, data)
+    test_from_list(type_id, data, True, 5)
     
     # test data from a given file
-    typeId = 6
-    isAsc = False
-    topN = 5
-    fileIn = r'C:\Users\thinkpad\Desktop\numbersIn.txt'
-    fileOut = r'C:\Users\thinkpad\Desktop\numbersOut.txt'
-    testFromFile(typeId, fileIn, fileOut, isAsc, topN)
+    type_id = 7
+    is_asc_order = False
+    top_n = 8
+    file_in = r'C:\Users\thinkpad\Desktop\numbersIn.txt'
+    file_out = r'C:\Users\thinkpad\Desktop\numbersOut.txt'
+    test_from_file(type_id, file_in, file_out, is_asc_order, top_n)
