@@ -1,4 +1,0 @@
-# Each line is a host configuration
-# domain, priority, maxDepth, crossHostAllowed, connectTimeout, socketTimeout 
-
-shiyanjun.cn, 0, 2, false, 3000, 10000
