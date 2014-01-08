@@ -119,6 +119,10 @@ class Storage:
         pass
     
     @abstractmethod
+    def query_page(self, url):
+        pass
+    
+    @abstractmethod
     def save_page(self, **data):
         pass
     
@@ -129,4 +133,37 @@ class Storage:
     @abstractmethod
     def is_crawled(self, url):
         pass
+    
+    @abstractmethod
+    def close(self):
+        pass
 
+    
+class CrawlerManager:
+    '''
+    Manage crawlers
+    '''
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def create_crawler(self):
+        pass
+    
+    def wait_for(self):
+        pass
+    
+    '''
+    Notify the manager the crawler has completed
+    the assigned tasks.
+    '''
+    @abstractmethod
+    def notify_complete(self, crawler_name):
+        pass
+    
+    @abstractmethod
+    def get_storage(self):
+        pass
+    
+    @abstractmethod
+    def get_http_engine(self):
+        pass

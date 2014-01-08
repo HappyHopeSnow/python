@@ -1,4 +1,4 @@
-from datetime import datetime, date, time
+from datetime import datetime
 import hashlib
 import sqlite3
 
@@ -7,10 +7,31 @@ from crawler.common import Storage
 
 class CrawlerStorage(Storage):
     
+    __charset = 'UTF-8'
+    __insert_page_sql = '''
+        INSERT INTO page(
+        id, url, content, status_code, charset, etag, last_modified, create_time, update_time
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+    __insert_url_sql = '''
+        INSERT INTO url(md5, url, create_time, update_time) VALUES (?, ?, ?, ?)
+    '''
+    __select_page_sql = '''
+        SELECT * FROM page WHERE id = ?
+    '''
+    __select_url_sql = '''
+        SELECT * FROM url WHERE md5 = ?
+    '''
+    
     def initialize(self):
         SQLite.connect()
         SQLite.create_crawler_tables()
-        
+    
+    def query_page(self, url):
+        md5 = self.__md5(url)
+        value = (md5, )
+        result = SQLite.execute_query_sql(CrawlerStorage.__select_page_sql, value)
+        return result
+    
     def save_page(self, **page_data):
         url = page_data.get('url', None)
         if url:
@@ -22,36 +43,19 @@ class CrawlerStorage(Storage):
             last_modified = page_data.get('last_modified', '')
             create_time = self.__now_datetime()
             update_time = create_time
-            sql = 'INSERT INTO page('
-            sql += 'id, url, content, status_code, charset, etag, last_modified, create_time, update_time'
-            sql += ') VALUES ('
-            sql += '\'' + pk + '\','
-            sql += '\'' + url + '\','
-            sql += '\'' + content + '\','
-            sql += status_code
-            sql += '\'' + charset + '\','
-            sql += '\'' + etag + '\','
-            sql += '\'' + last_modified + '\','
-            sql += '\'' + create_time + '\','
-            sql += '\'' + update_time + '\''
-            sql += ')'
-            SQLite.execute_sql(sql)
+            sql = CrawlerStorage.__insert_page_sql
+            value = (pk, url, content, status_code, charset, etag, last_modified, create_time, update_time)
+            SQLite.execute_dml_sql(sql, value)
     
     def save_url(self, **url_data):
-        url = url_data.get('url', None)
+        url = url_data.get('url')
         if url:
             md5 = self.__md5(url)
             create_time = self.__now_datetime()
             update_time = create_time
-            sql = 'INSERT INTO url('
-            sql += 'md5, url, create_time, update_time'
-            sql += ') VALUES ('
-            sql += '\'' + md5 + '\','
-            sql += '\'' + url + '\','
-            sql += '\'' + create_time + '\','
-            sql += '\'' + update_time + '\''
-            sql += ')'
-            SQLite.execute_sql(sql)
+            sql = CrawlerStorage.__insert_url_sql
+            value = (md5, url, create_time, update_time)
+            SQLite.execute_dml_sql(sql, value)
         
     def __now_datetime(self):
         #http://docs.python.org/3/library/datetime.html
@@ -63,12 +67,18 @@ class CrawlerStorage(Storage):
     def __md5(self, url):
         md5 = None
         if url:
-            md5 = hashlib.md5(url).hexdigest()
+            md5 = hashlib.md5(url.encode(CrawlerStorage.__charset)).hexdigest()
         return md5
     
     def is_crawled(self, url):
-        pass
+        md5 = self.__md5(url)
+        value = (md5, )
+        result = SQLite.execute_query_sql(CrawlerStorage.__select_url_sql, value)
+        return result is not None
     
+    def close(self):
+        SQLite.close()
+        
 
 class SQLite:
     __db = 'crawler.db'
@@ -124,16 +134,74 @@ class SQLite:
                 print('Fail to create table ' + table, e.args[0]) 
     
     @classmethod
-    def execute_sql(cls, sql):
+    def execute_dml_sql(cls, sql, value):
         cls.connect(cls.__db)
         cursor = cls.connection.cursor()
         try:
-            cursor.execute(sql)
+            print('Parameter values: ' + str(value))
+            cursor.execute(sql, value)
+            cls.connection.commit()
         except sqlite3.Error as e:
             print('Fail to execute sql: ' + sql, e.args[0]) 
-            
+        else:
+            cursor.close()
     
+    @classmethod
+    def execute_query_sql(cls, sql, value):
+        cls.connect(cls.__db)
+        cursor = cls.connection.cursor()
+        try:
+            print('Parameter values: ' + str(value))
+            cursor.execute(sql, value)
+        except sqlite3.Error as e:
+            print('Fail to execute sql: ' + sql, e.args[0]) 
+        else:
+            result = list(cursor)
+            cursor.close()
+            return result
+    
+    @classmethod
+    def close(cls):
+        if cls.connection:
+            cls.connection.close()
+
+
 
 if __name__ == '__main__':
     SQLite.connect()
     SQLite.create_crawler_tables()
+    
+    # test insert a page
+    def test_insert_page():
+        store = CrawlerStorage()
+        page = {
+                'url' : 'http://baidu.com',
+                'status_code' : 200,
+                'charset' : 'utf-8',
+                'etag' : 'FDSa12-kldjanJK8',
+                'last_modified' : '2014-01-08 19:07:27'
+            }
+        store.save_page(**page)
+    
+    # test query a page
+    def test_query_page():
+        store = CrawlerStorage()
+        url ='http://baidu.com'
+        result = store.query_page(url)
+        for record in result:
+            print(str(record))
+            
+    def test_is_crawled():
+        store = CrawlerStorage()
+        url ='http://baidu.com'
+        is_crawled = store.is_crawled(url)
+        print('is_crawled = ' + str(is_crawled) + ', url = ' + url)
+    
+    is_insert = False
+    is_select = True
+        
+    if is_insert:
+        test_insert_page()
+    if is_select:
+        test_query_page()
+    test_is_crawled()

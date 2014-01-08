@@ -11,10 +11,13 @@ class DefaultCrawler(Crawler):
     References:
     1. http://en.wikipedia.org/wiki/List_of_HTTP_header_fields
     '''
-    def __init__(self, conf, name=None):
+    def __init__(self, conf, name=None, manager=None):
+        if manager:
+            self.__manager = manager
+            self.__storage = self.__manager.get__storage()
         super(DefaultCrawler, self).__init__(conf)
         # initialize HTTP engine
-        self.__http_engine = self.__create_engine()
+        self.__http_engine = self.__manager.get_http_engine()
         self.name = name
         if not name:
             seed = self.__class__.__name__
@@ -22,9 +25,6 @@ class DefaultCrawler(Crawler):
         print('Create crawler: id = ' + name)
         self.__max_depth = self.crawler_conf.max_depth
         
-    def __create_engine(self):
-        self.__http_engine = DefaultHttpEngine()
-            
     def crawl(self, url_task):
         # crawl a url task built from the seed file
         task = url_task
@@ -47,15 +47,15 @@ class DefaultCrawler(Crawler):
                 print('Extract urls: ref=' + task.url + ', urlsInPage = ' + str(len(url_tasks)))
                 for url_task in url_tasks:
                     self.__fetch_all(url_task)
+        elif status_code >= 300 and status_code < 400:
+            # redirection
+            location = self.__http_engine.get_resp_header('Location')
     
     def __fetch(self, url_task):
-        if not self.__http_engine:
+        if self.__http_engine.is_reuseable():
+            self.__http_engine.reuse()
+        else :
             self.__create_engine()
-        else:
-            if self.__http_engine.is_reuseable():
-                self.__http_engine.reuse()
-            else :
-                self.__create_engine()
         # fetch page
         self.__http_engine.fetch(url_task)
         
@@ -68,8 +68,30 @@ class DefaultCrawler(Crawler):
             print('Crawl page: status = SUCCESS, url = ' + url_task.url)
         else:
             print('Crawl page: status = FAILURE, url = ' + url_task.url)
-        # TODO
         # store to DB
+        # store page data
+        page_data = {}
+        page_data['url'] = url_task.url
+        page_data['status_code'] = status_code
+        content_type = self.__http_engine.get_resp_header('Content-Type')
+        charset = self.__extract_charset(content_type)
+        if charset:
+            page_data['charset'] = charset
+        etag = self.__http_engine.get_resp_header('ETag')
+        page_data['etag'] = etag
+        last_modified = self.__http_engine.get_resp_header('Last-Modified')
+        page_data['last_modified'] = last_modified
+        self.__storage.save_page(**page_data)
+        # store url data
+        url_data = {}
+        url_data['url'] = url_task.url
+        self.__storage.save_url(**url_data)
+    
+    def __extract_charset(self, content_type):
+        pass
+           
+    def __str__(self):
+        return 'Crawler[' + self.name + ']'
                     
 class TaskFactory:
     '''
