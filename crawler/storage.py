@@ -1,3 +1,4 @@
+from datetime import datetime, date, time
 import hashlib
 import sqlite3
 
@@ -11,23 +12,53 @@ class CrawlerStorage(Storage):
         SQLite.create_crawler_tables()
         
     def save_page(self, **page_data):
-        url = page_data['url']
+        url = page_data.get('url', None)
         if url:
             pk = self.__md5(url)
-            content = page_data['content']
-            status_code = page_data['status_code']
-            charset = page_data['charset']
-            etag = page_data['etag']
-            last_modified = page_data['last_modified']
-            sql = 'INSERT INTO page VALUES ('
+            content = page_data.get('content', '')
+            status_code = page_data.get('status_code', 0)
+            charset = page_data.get('charset', '')
+            etag = page_data.get('etag', '')
+            last_modified = page_data.get('last_modified', '')
+            create_time = self.__now_datetime()
+            update_time = create_time
+            sql = 'INSERT INTO page('
+            sql += 'id, url, content, status_code, charset, etag, last_modified, create_time, update_time'
+            sql += ') VALUES ('
+            sql += '\'' + pk + '\','
+            sql += '\'' + url + '\','
+            sql += '\'' + content + '\','
+            sql += status_code
+            sql += '\'' + charset + '\','
+            sql += '\'' + etag + '\','
+            sql += '\'' + last_modified + '\','
+            sql += '\'' + create_time + '\','
+            sql += '\'' + update_time + '\''
+            sql += ')'
             SQLite.execute_sql(sql)
     
     def save_url(self, **url_data):
-        url = url_data['url']
+        url = url_data.get('url', None)
         if url:
             md5 = self.__md5(url)
-        sql = 'INSERT INTO url VALUES ('
-        SQLite.execute_sql(sql)
+            create_time = self.__now_datetime()
+            update_time = create_time
+            sql = 'INSERT INTO url('
+            sql += 'md5, url, create_time, update_time'
+            sql += ') VALUES ('
+            sql += '\'' + md5 + '\','
+            sql += '\'' + url + '\','
+            sql += '\'' + create_time + '\','
+            sql += '\'' + update_time + '\''
+            sql += ')'
+            SQLite.execute_sql(sql)
+        
+    def __now_datetime(self):
+        #http://docs.python.org/3/library/datetime.html
+        now = datetime.now()
+        str_date = now.strftime("%y-%m-%d %H:%M:%S")
+        return str_date
+        
         
     def __md5(self, url):
         md5 = None
