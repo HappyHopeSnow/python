@@ -35,6 +35,8 @@ class DefaultCrawlerManager(CrawlerManager):
             if crawler:
                 crawler.crawl(task)
                 self.notify_complete(name)
+        # close database
+        self.__storage.close()
         
     def notify_complete(self, crawler_name):
         self.__crawlers.pop(crawler_name)
