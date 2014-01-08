@@ -109,5 +109,24 @@ class HttpEngine:
         pass
     
         
-
+class Storage:
+    '''
+    '''
+    __metaclass__ = ABCMeta
+    
+    @abstractmethod
+    def initialize(self):
+        pass
+    
+    @abstractmethod
+    def save_page(self, **data):
+        pass
+    
+    @abstractmethod
+    def save_url(self, **data):
+        pass
+    
+    @abstractmethod
+    def is_crawled(self, url):
+        pass
 
