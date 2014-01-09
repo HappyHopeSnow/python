@@ -1,9 +1,12 @@
 from crawler.common import CrawlerConf, TaskConf
 from crawler.crawlers import DefaultCrawler, UrlTask
+from crawler.manager import DefaultCrawlerManager
 
 
 # test crawler
 def crawl():
+#     task_file = r'E:\git\python\crawler\data\seeds.conf'
+#     manager = DefaultCrawlerManager(task_file)
     conf = CrawlerConf()
     conf.max_depth = 1
     crawler = DefaultCrawler(conf)

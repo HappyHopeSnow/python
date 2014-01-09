@@ -71,12 +71,16 @@ class Crawler:
     '''
     __metaclass__ = ABCMeta
     
-    def __init__(self, crawler_conf=None):
-        self.crawler_conf = crawler_conf
+    def __init__(self, crawler_conf, name=None, manager=None):
+        self._crawler_conf = crawler_conf
+        self._manager = None
         
     @abstractmethod
     def crawl(self, task):
         pass
+    
+    def get_manager(self):
+        return self._manager
     
 
 class HttpEngine:
@@ -84,29 +88,35 @@ class HttpEngine:
     '''
     __metaclass__ = ABCMeta
     
+    def __init__(self):
+        self._initialize()
+        
+    def _initialize(self):
+        self._is_reuseable = True
+        self._status_code = 0
+        self._resp_headers = {}
+        self._binary_data = None
+        self._exceptions = []
+        
     @abstractmethod
     def fetch(self, url_task):
-        pass
-    
-    @abstractmethod
-    def get_status_code(self):
-        pass
-    
-    @abstractmethod
-    def get_resp_header(self, key):
-        pass
-    
-    @abstractmethod
-    def get_data(self):
         pass
     
     @abstractmethod
     def reuse(self):
         pass
     
-    @abstractmethod
+    def get_status_code(self):
+        return self._status_code
+    
+    def get_resp_header(self, key):
+        return self._resp_headers.get(key)
+    
+    def get_data(self):
+        return self._binary_data
+    
     def is_reuseable(self):
-        pass
+        return self._is_reuseable
     
         
 class Storage:
@@ -123,11 +133,23 @@ class Storage:
         pass
     
     @abstractmethod
+    def query_all_pages(self):
+        pass
+    
+    @abstractmethod
+    def query_all_urls(self):
+        pass
+    
+    @abstractmethod
     def save_page(self, **data):
         pass
     
     @abstractmethod
     def save_url(self, **data):
+        pass
+    
+    @abstractmethod
+    def should_crawl(self, url):
         pass
     
     @abstractmethod
@@ -145,6 +167,12 @@ class CrawlerManager:
     '''
     __metaclass__ = ABCMeta
 
+    def __init__(self, task_file=None):
+        self._http_engine = None
+        self._storage = None
+        self._crawlers = {}
+        self._seed_tasks = []
+        
     @abstractmethod
     def create_crawler(self):
         pass
@@ -160,10 +188,9 @@ class CrawlerManager:
     def notify_complete(self, crawler_name):
         pass
     
-    @abstractmethod
     def get_storage(self):
-        pass
+        return self._storage
     
-    @abstractmethod
     def get_http_engine(self):
-        pass
+        return self._http_engine
+    

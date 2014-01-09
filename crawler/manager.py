@@ -11,38 +11,34 @@ class DefaultCrawlerManager(CrawlerManager):
     '''
     
     def __init__(self, task_file='data/seeds.conf'):
-        self.__storage = CrawlerStorage()
-        self.__seed_tasks = TaskFactory.build_seeds(task_file)
+        super(DefaultCrawlerManager, self).__init__(task_file)
+        self._storage = CrawlerStorage()
+        self._seed_tasks = TaskFactory.build_seeds(task_file)
         self.__create_engine() 
-        self.__crawlers = {}
     
     def __create_engine(self):
-        self.__http_engine = DefaultHttpEngine()
+        self._http_engine = DefaultHttpEngine()
            
     def create_crawler(self):
         conf = CrawlerConf()
         conf.max_depth = 1
         seed = self.__class__.__name__
-        name  = str(UniqIdGenerator.next_id(seed))
+        name  = 'crawler' + str(UniqIdGenerator.next_id(seed))
+        print('Manager create crawler: #' + name)
         crawler = DefaultCrawler(conf, name, self)
-        self.__crawlers[name] = crawler
+        self._crawlers[name] = crawler
         return name
         
     def wait_for(self):
-        for task in self.__seed_tasks:
+        for task in self._seed_tasks:
             name = self.create_crawler()
-            crawler = self.__crawlers.get(name)
+            crawler = self._crawlers.get(name)
             if crawler:
                 crawler.crawl(task)
                 self.notify_complete(name)
         # close database
-        self.__storage.close()
+        self._storage.close()
         
     def notify_complete(self, crawler_name):
-        self.__crawlers.pop(crawler_name)
+        self._crawlers.pop(crawler_name)
     
-    def get_storage(self):
-        return self.__http_engine
-    
-    def get_http_engine(self):
-        return self.__storage

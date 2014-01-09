@@ -2,6 +2,7 @@ import re
 
 from crawler.common import Crawler, TaskConf
 from crawler.http import DefaultHttpEngine
+from crawler.storage import CrawlerStorage
 from crawler.utils import UniqIdGenerator
 
 
@@ -11,24 +12,36 @@ class DefaultCrawler(Crawler):
     References:
     1. http://en.wikipedia.org/wiki/List_of_HTTP_header_fields
     '''
-    def __init__(self, conf, name=None, manager=None):
+    def __init__(self, crawler_conf, name=None, manager=None):
+        super(DefaultCrawler, self).__init__(crawler_conf)
         if manager:
-            self.__manager = manager
-            self.__storage = self.__manager.get__storage()
-        super(DefaultCrawler, self).__init__(conf)
-        # initialize HTTP engine
-        self.__http_engine = self.__manager.get_http_engine()
+            self._manager = manager
+            self._storage = self._manager.get__storage()
+            # initialize HTTP engine
+            self.__http_engine = self._manager.get_http_engine()
+        else:
+            self.__http_engine = DefaultHttpEngine()
+            self._storage = CrawlerStorage()
+            self._storage.initialize()
         self.name = name
         if not name:
             seed = self.__class__.__name__
-            name  = str(UniqIdGenerator.next_id(seed))
-        print('Create crawler: id = ' + name)
-        self.__max_depth = self.crawler_conf.max_depth
-        
+            name  = 'crawler-' + str(UniqIdGenerator.next_id(seed))
+        print('Create crawler: #' + name)
+        self.__max_depth = self._crawler_conf.max_depth
+    
+    def __should_try_to_crawl(self, url):
+        if not self._storage.is_crawled(url):
+            return True
+        elif self._storage.should_crawl(url):
+            return True
+        else:
+            return False
+           
     def crawl(self, url_task):
         # crawl a url task built from the seed file
         task = url_task
-        if task:
+        if task and task.url and self.__should_try_to_crawl(url_task.url):
             # compute max depth of crawling pages
             if task.task_conf.max_depth:
                 # override default max depth configuration
@@ -43,32 +56,41 @@ class DefaultCrawler(Crawler):
         self.__store(task)
         if status_code and status_code == 200:
             if task.depth <= self.__max_depth - 1:
-                url_tasks = TaskFactory.build_url_tasks(task);
+                url_tasks = TaskFactory.build_url_tasks(task, self);
                 print('Extract urls: ref=' + task.url + ', urlsInPage = ' + str(len(url_tasks)))
                 for url_task in url_tasks:
                     self.__fetch_all(url_task)
         elif status_code >= 300 and status_code < 400:
             # redirection
             location = self.__http_engine.get_resp_header('Location')
+            print('Redirection: localtion_url = ' + location)
     
     def __fetch(self, url_task):
         if self.__http_engine.is_reuseable():
             self.__http_engine.reuse()
-        else :
+        else:
             self.__create_engine()
         # fetch page
         self.__http_engine.fetch(url_task)
-        
+    
+    def __log_crawl(self, status_code, url):
+        template = 'Crawled: status_code = {0}, url = {1}'
+        print(template.format(status_code, url))
+         
     def __store(self, url_task):
         status_code = self.__http_engine.get_status_code()
         url_task.crawl_result.status_code = status_code
         if status_code and status_code == 200:
             url_task.crawl_result.binary_data = self.__http_engine.get_data()
             #url_task.crawl_result.response_headers = None
-            print('Crawl page: status = SUCCESS, url = ' + url_task.url)
+            self.__log_crawl(status_code, url_task.url)
         else:
-            print('Crawl page: status = FAILURE, url = ' + url_task.url)
-        # store to DB
+            self.__log_crawl(status_code, url_task.url)
+        # store to database
+        # store url data
+        url_data = {}
+        url_data['url'] = url_task.url
+        self.__insert_url(**url_data)
         # store page data
         page_data = {}
         page_data['url'] = url_task.url
@@ -81,17 +103,29 @@ class DefaultCrawler(Crawler):
         page_data['etag'] = etag
         last_modified = self.__http_engine.get_resp_header('Last-Modified')
         page_data['last_modified'] = last_modified
-        self.__storage.save_page(**page_data)
-        # store url data
-        url_data = {}
-        url_data['url'] = url_task.url
-        self.__storage.save_url(**url_data)
+        data = self.__http_engine.get_data()
+        if data:
+            page_data['content'] = data
+        self.__insert_page(**page_data)
+        
+    def __insert_page(self, **page_data):
+        self._storage.save_page(**page_data)
+    
+    def __insert_url(self, **url_data):
+        self._storage.save_url(**url_data)
     
     def __extract_charset(self, content_type):
-        pass
+        encoding = 'utf-8'
+        if content_type:
+#             print('content_type = ' + content_type)
+            charsets = re.findall(r'.*charset\s*=\s*[\'\"]*([^\'\"]+).*', content_type, re.I)
+            if charsets:
+                encoding = charsets[0].lower() 
+        return encoding
            
     def __str__(self):
         return 'Crawler[' + self.name + ']'
+    
                     
 class TaskFactory:
     '''
@@ -146,7 +180,7 @@ class TaskFactory:
         return url_tasks
     
     @classmethod
-    def build_url_tasks(cls, url_task):
+    def build_url_tasks(cls, url_task, crawler):
         url_tasks = []
         if not url_task and not url_task.crawl_result:
             return url_tasks
@@ -156,12 +190,36 @@ class TaskFactory:
             resultParser = ResultParser()
             urls = resultParser.extract_urls(url_task.crawl_result)
             for url in urls:
-                print('Crawl page: url = ' + url)
-                conf = TaskConf.clone(url, url_task.task_conf)
-                task = UrlTask(conf)
-                task.depth = depth
-                url_tasks.append(task)
+                is_url_crawled = cls.__is_url_crawled(url, crawler)
+                if not is_url_crawled:
+                    print('Crawl page: url = ' + url)
+                    conf = TaskConf.clone(url, url_task.task_conf)
+                    task = UrlTask(conf)
+                    task.depth = depth
+                    url_tasks.append(task)
         return url_tasks
+    
+    
+    @classmethod
+    def __is_url_crawled(cls, url, crawler):
+        try:
+            storage = cls.__get_storage(crawler)
+        except BaseException as e:
+            print(str(e))
+        if storage.is_crawled(url):
+            return True
+        else:
+            return False
+        
+    @classmethod
+    def __get_storage(cls, crawler):
+        manager = crawler.get_manager()
+        if not manager:
+            storage = CrawlerStorage()
+        else:
+            storage = manager.get_storage()
+        return storage
+    
     
 class UrlTask:
     '''
