@@ -1,4 +1,6 @@
 from abc import ABCMeta, abstractmethod
+from threading import Lock
+
 
 class Configurable:
     '''
@@ -13,6 +15,63 @@ class Configurable:
     def get_context(self):
         return self._context
     
+
+class Status:
+    UNKNOWN = 0
+    SUCCESS = 1
+    FAILURE = 2
+    
+
+class Counter:
+    TOTAL = 0
+    SUCCESS = 1
+    FAILURE = 2
+    
+    
+class Stat:
+    '''
+    Process processing statistics information.
+    '''
+    def __init__(self):
+        self.__lock = Lock()
+        self._total_count = 0
+        self._success_count = 0
+        self._failure_count = 0
+        
+    def inc(self, result):
+        self.add(result, 1)
+            
+    def add(self, counter, value): 
+        with self.__lock:
+            if counter == Counter.SUCCESS:
+                self._success_count += value
+            elif counter == Counter.FAILURE:
+                self._failure_count += value
+            else :
+                raise ValueError('Unsupported counter: counter = ' + counter)
+            self._total_count += value   
+            
+    def get_count(self, counter):
+        count = 0
+        if counter == Counter.SUCCESS:
+            count = self._success_count
+        elif counter == Counter.FAILURE:
+            count = self._failure_count
+        elif counter == Counter.TOTAL:
+            count = self._total_count
+        else:
+            raise ValueError('Undefined counter: counter = ' + counter)
+        return count
+    
+       
+class Result:
+    '''
+    Processor execution result.
+    '''
+    def __init__(self):
+        self.status = Status.UNKNOWN
+        self.stat = Stat()
+        
     
 class Processor(Configurable):
     '''
@@ -24,11 +83,14 @@ class Processor(Configurable):
     
     def __init__(self, context):
         super(Processor, self).__init__(context)
-    
+        self._result = Result()
+        
     @abstractmethod
     def process(self):
         pass
-    
+        
+    def get_result(self):
+        return self._result
     
         
 class Job(Processor):
