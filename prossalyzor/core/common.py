@@ -43,6 +43,18 @@ class Job(Processor):
         super(Task, self).__init__(context)
         
         
+class Scheduler(Configurable): 
+    '''
+    Job scheduler.
+    '''
+    __metaclass__ = ABCMeta
+    
+    def __init__(self, context):
+        super(Scheduler, self).__init__(context) 
+    
+    @abstractmethod
+    def schedule(self):
+        pass
     
 
 class Task(Processor):
@@ -92,9 +104,9 @@ class Executor(Configurable):
         super(Executor, self).__init__(context)
     
     @abstractmethod
-    def execute(self, task, callback):
+    def execute(self, processor, callback):
         '''
-            Execute a submitted task object.
+            Execute a submitted processor object.
         '''
         pass
 
