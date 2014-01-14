@@ -53,4 +53,3 @@ class JobContext(AbstractContext):
         super(JobContext, self).__init__()
 
 
-    

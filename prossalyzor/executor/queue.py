@@ -10,7 +10,7 @@ class QueuedPoolExecutor(PoolExecutor):
     '''
     def __init__(self, context, q_size=1):
         super(QueuedPoolExecutor, self).__init__(context)
-        self._task_q = Queue(q_size)
+        self._q = Queue(q_size)
     
-    def execute(self, task, callback):
-        pass
+    def execute(self, task):
+        self._q.put(task, block=False)

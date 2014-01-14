@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from threading import Lock
 
+from prossalyzor.core.constants import Counter, Status
+
 
 class Configurable:
     '''
@@ -16,18 +18,6 @@ class Configurable:
         return self._context
     
 
-class Status:
-    UNKNOWN = 0
-    SUCCESS = 1
-    FAILURE = 2
-    
-
-class Counter:
-    TOTAL = 0
-    SUCCESS = 1
-    FAILURE = 2
-    
-    
 class Stat:
     '''
     Process processing statistics information.
@@ -166,7 +156,7 @@ class Executor(Configurable):
         super(Executor, self).__init__(context)
     
     @abstractmethod
-    def execute(self, processor, callback):
+    def execute(self, processor):
         '''
             Execute a submitted processor object.
         '''
