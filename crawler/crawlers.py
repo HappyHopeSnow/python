@@ -13,10 +13,10 @@ class DefaultCrawler(Crawler):
     1. http://en.wikipedia.org/wiki/List_of_HTTP_header_fields
     '''
     def __init__(self, crawler_conf, name=None, manager=None):
-        super(DefaultCrawler, self).__init__(crawler_conf)
+        super(DefaultCrawler, self).__init__(crawler_conf, name, manager)
         if manager:
             self._manager = manager
-            self._storage = self._manager.get__storage()
+            self._storage = self._manager.get_storage()
             # initialize HTTP engine
             self.__http_engine = self._manager.get_http_engine()
         else:
@@ -99,6 +99,7 @@ class DefaultCrawler(Crawler):
         charset = self.__extract_charset(content_type)
         if charset:
             page_data['charset'] = charset
+            url_task.crawl_result.charset = charset
         etag = self.__http_engine.get_resp_header('ETag')
         page_data['etag'] = etag
         last_modified = self.__http_engine.get_resp_header('Last-Modified')

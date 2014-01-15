@@ -10,7 +10,7 @@ class CrawlerStorage(Storage):
     __charset = 'UTF-8'
     __insert_page_sql = '''
         INSERT INTO page(
-        id, url, content, status_code, charset, etag, last_modified, create_time, update_time
+        id, url, status_code, charset, etag, last_modified, content, create_time, update_time
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
     __update_page_sql = '''
@@ -77,12 +77,14 @@ class CrawlerStorage(Storage):
         is_needed = False
         result = self.query_page(url)
         status_code = 0
-        if len(result) == 0:
+        if not result:
             is_needed = False
-        elif len(result) > 0:
+        elif len(result) <= 0:
+            is_needed = False
+        else:
             status_code = result[0][3]
-        if status_code != 200:
-            is_needed = True
+            if status_code != 200:
+                is_needed = True
         return is_needed
         
     def save_url(self, **url_data):
@@ -137,11 +139,11 @@ class SQLite:
         create table if not exists page (
             id text primary key, 
             url text unique, 
-            content blob, 
             status_code integer, 
             charset text,
             etag text, 
             last_modified text, 
+            content blob, 
             create_time text,
             update_time text)
     '''
@@ -190,6 +192,7 @@ class SQLite:
         cursor = cls.connection.cursor()
         try:
             cursor.execute(sql, value)
+            cls.connection.commit()
         except sqlite3.Error as e:
             print('Fail to execute sql: ' + sql, e.args[0]) 
         else:
@@ -237,7 +240,7 @@ if __name__ == '__main__':
     # test query a page
     def test_query_page():
         store = CrawlerStorage()
-        url ='http://apache.org'
+        url ='http://www.baidu.com'
         result = store.query_page(url)
         iterate(result)
     
@@ -258,7 +261,7 @@ if __name__ == '__main__':
             
     def test_is_crawled():
         store = CrawlerStorage()
-        url ='http://apache.org'
+        url ='http://www.baidu.com'
         is_crawled = store.is_crawled(url)
         print('is_crawled = ' + str(is_crawled) + ', url = ' + url)
     
@@ -267,7 +270,7 @@ if __name__ == '__main__':
     is_select = False
     is_crawled = False
     is_query_all_pages = True
-    is_query_all_urls = True
+    is_query_all_urls = False
         
     if is_insert:
         test_insert_page()
