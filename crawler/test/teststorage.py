@@ -49,8 +49,8 @@ if __name__ == '__main__':
     is_insert = False
     is_select = False
     is_crawled = False
-    is_query_all_pages = True
-    is_query_all_urls = False
+    is_query_all_pages = False
+    is_query_all_urls = True
         
     if is_insert:
         test_insert_page()

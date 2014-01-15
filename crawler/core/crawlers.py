@@ -86,6 +86,9 @@ class AbstractCrawlPolicy(CrawlPolicy):
             if task.depth <= self._max_depth - 1:
                 # extract and check urls
                 urls = ResultParser.extract_urls(task.crawl_result)
+                # normalize urls
+                urls = ResultParser.normalize_urls(urls)
+                # filter urls
                 waiting_crawled_urls = filter(self.should_crawl, urls)
                 # build url tasks
                 url_tasks = TaskFactory.build_url_tasks(task, waiting_crawled_urls);
@@ -294,6 +297,23 @@ class CrawlResult:
     
 
 class ResultParser:
+    '''
+    Parse result page content crawled by a crawler.
+    '''
+    BAD_CHARACTERS = ['\'', '\"', '>', '<', ' ']
+    BAD_SUFFIX_NAMES = [
+        '.zip', '.rar', '.iso', '.gz', '.tar', '.jar', 
+        '.gzip', '.7z', '.cab', '.uue', '.bz2', '.z',
+        '.rmvb', '.mkv', '.mp3', '.mp4', '.mov', '.flv',
+        '.wmv', '.asf', '.csf', '.sts', '.swf', '.avi',
+        '.ts', '.acm', '.adf', '.aiff', '.ani', '.dll', 
+        '.so', '.emf', '.tiff', '.psd', '.pcx', '.wmf',
+        '.png', '.gif', '.bmp', '.ico', '.jpg', '.jpeg',
+        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt',
+        '.ppt', '.pptx', '.mdf', '.exe', '.css', 
+        '.java', '.cpp', '.py', '.rb', '.go', '.php',
+        '.c', '.hpp', '.sh', '.pl', '.clj', '.h'
+    ]
     
     @classmethod
     def extract_urls(cls, crawl_result):
@@ -314,6 +334,33 @@ class ResultParser:
             is_valid = url.startswith('http://') 
         return is_valid
         #and url.startswith('#') and url.startswith('/')
+    
+    @classmethod
+    def normalize_urls(cls, urls):
+        url_set = set()
+        for url in urls:
+            u = None
+            lowest_index = url.find('#')
+            
+            if  lowest_index != -1:
+                u = url.split('#')[0]
+            else:
+                bad_character_found = False
+                for ch in ResultParser.BAD_CHARACTERS:
+                    if url.find(ch) != -1:
+                        bad_character_found = True
+                        break
+                if not bad_character_found:
+                    u = url
+            # discard bad suffix named url
+            for name in ResultParser.BAD_SUFFIX_NAMES:
+                lowered_url = url.lower()
+                if lowered_url.endswith(name):
+                    continue
+            # collect normalized urls
+            if u:
+                url_set.add(u)
+        return url_set
     
     @classmethod
     def extract_anchors(cls, crawl_result):

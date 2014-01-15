@@ -6,7 +6,7 @@ from crawler.core.storage import CrawlerStorage
 
 
 def managed_crawl():
-    task_file = r'E:\git\python\crawler\data\seeds.conf'
+    task_file = r'E:\Develop\github.com\workspace\python\crawler\data\seeds.conf'
     settings = {
         Key.CRAWLER_CRAWL_MODE          :   CrawlMode.STORAGE,
         Key.CRAWLER_TASK_FILE           :   task_file,
