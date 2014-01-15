@@ -1,6 +1,6 @@
-from crawler.common import CrawlerConf, TaskConf
-from crawler.crawlers import DefaultCrawler, UrlTask
-from crawler.manager import DefaultCrawlerManager
+from crawler.core.common import CrawlerConf, TaskConf
+from crawler.core.crawlers import DefaultCrawler, UrlTask
+from crawler.core.manager import DefaultCrawlerManager
 
 
 # test crawler

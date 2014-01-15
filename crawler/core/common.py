@@ -3,12 +3,34 @@ import copy
 import socket
 
 
+class CrawlMode:
+    '''
+    Crawler work mode:
+        SIMPLE     -    just crawl but does not store pages.
+        STORAGE    -    crawl and storage page content.
+    '''
+    SIMPLE  = 0
+    STORAGE = 1
+    
+
 class CrawlerConf:
     '''
     Configure a crawler's behaviors.
     '''
     def __init__(self):
+        self.mode = CrawlMode.SIMPLE
+        self.crawler_name = None
+        self.http_engine = None
+        self.storage = None
         self.max_depth = 0
+       
+    @classmethod 
+    def clone(cls, crawler_conf=None):
+        if crawler_conf:
+            copier = copy.deepcopy(crawler_conf)
+        else:
+            copier = CrawlerConf()
+        return copier
         
         
 class TaskConf:
@@ -71,17 +93,46 @@ class Crawler:
     '''
     __metaclass__ = ABCMeta
     
-    def __init__(self, crawler_conf, name=None, manager=None):
+    def __init__(self, crawler_conf):
         self._crawler_conf = crawler_conf
-        self._manager = None
+        self._crawl_policy = None
+        self._name = None
         
     @abstractmethod
     def crawl(self, task):
         pass
     
-    def get_manager(self):
-        return self._manager
+    def get_name(self):
+        return self._name
     
+    def get_crawler_conf(self):
+        return self._crawler_conf
+    
+    def get_crawl_policy(self):
+        return self._crawl_policy
+    
+
+class CrawlPolicy:
+    
+    '''
+    Crawl policy used by DefaultCrawler.
+    '''
+    __metaclass__ = ABCMeta
+    
+    def __init__(self, crawler):
+        self._crawler = crawler
+    
+    @abstractmethod
+    def fetch(self, url_task):
+        pass
+    
+    @abstractmethod
+    def should_crawl(self, url):
+        pass
+    
+    @abstractmethod
+    def store(self, url_task):
+        pass
 
 class HttpEngine:
     '''

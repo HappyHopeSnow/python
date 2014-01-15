@@ -2,7 +2,7 @@ from datetime import datetime
 import hashlib
 import sqlite3
 
-from crawler.common import Storage
+from crawler.core.common import Storage
 
 
 class CrawlerStorage(Storage):
