@@ -11,7 +11,17 @@ class CrawlMode:
     '''
     SIMPLE  = 0
     STORAGE = 1
-    
+
+
+class Key:
+    '''
+    Configuration key constants.
+    '''
+    CRAWLER_CRAWL_MODE = 'crawler.crawl.mode'
+    CRAWLER_TASK_FILE = 'crawler.task.file'
+    CRAWLER_STORAGE_CLASS = 'crawler.storage.class'
+    CRAWLER_HTTP_ENGINE_CLASS = 'crawler.http.engine.class'
+        
 
 class CrawlerConf:
     '''
@@ -121,6 +131,10 @@ class CrawlPolicy:
     
     def __init__(self, crawler):
         self._crawler = crawler
+        self._storage = None
+        self._crawler_conf = None
+        self._http_engine = None
+        self._max_depth = None
     
     @abstractmethod
     def fetch(self, url_task):
@@ -218,7 +232,7 @@ class CrawlerManager:
     '''
     __metaclass__ = ABCMeta
 
-    def __init__(self, task_file=None):
+    def __init__(self, settings):
         self._http_engine = None
         self._storage = None
         self._crawlers = {}

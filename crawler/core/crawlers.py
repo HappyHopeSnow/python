@@ -64,7 +64,6 @@ class AbstractCrawlPolicy(CrawlPolicy):
         super(AbstractCrawlPolicy, self).__init__(crawler)
         self._crawler_conf = self._crawler.get_crawler_conf()
         self._http_engine = self._crawler_conf.http_engine
-        self._max_depth = None
         
     def __compute_max_depth(self, url_task):
         if not self._max_depth:
@@ -164,11 +163,12 @@ class StorageCrawlPolicy(AbstractCrawlPolicy):
     '''
     def __init__(self, crawler):
         super(StorageCrawlPolicy, self).__init__(crawler)
+        self._storage = crawler.get_crawler_conf().storage
         
     def should_crawl(self, url):
-        if not self.__storage.is_crawled(url):
+        if not self._storage.is_crawled(url):
             return True
-        elif self.__storage.should_crawl(url):
+        elif self._storage.should_crawl(url):
             return True
         else:
             return False
@@ -184,10 +184,10 @@ class StorageCrawlPolicy(AbstractCrawlPolicy):
         self.__insert_page(**page_data)
         
     def __insert_page(self, **page_data):
-        self.__storage.save_page(**page_data)
+        self._storage.save_page(**page_data)
     
     def __insert_url(self, **url_data):
-        self.__storage.save_url(**url_data)
+        self._storage.save_url(**url_data)
     
         
 class TaskFactory:
