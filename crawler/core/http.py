@@ -1,7 +1,7 @@
 import urllib
 from urllib.error import HTTPError
 
-from crawler.common import HttpEngine
+from crawler.core.common import HttpEngine
 
 
 class DefaultHttpEngine(HttpEngine):

@@ -2,7 +2,7 @@ from datetime import datetime
 import hashlib
 import sqlite3
 
-from crawler.common import Storage
+from crawler.core.common import Storage
 
 
 class CrawlerStorage(Storage):
@@ -10,7 +10,7 @@ class CrawlerStorage(Storage):
     __charset = 'UTF-8'
     __insert_page_sql = '''
         INSERT INTO page(
-        id, url, content, status_code, charset, etag, last_modified, create_time, update_time
+        id, url, status_code, charset, etag, last_modified, content, create_time, update_time
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
     __update_page_sql = '''
@@ -77,12 +77,14 @@ class CrawlerStorage(Storage):
         is_needed = False
         result = self.query_page(url)
         status_code = 0
-        if len(result) == 0:
+        if not result:
             is_needed = False
-        elif len(result) > 0:
+        elif len(result) <= 0:
+            is_needed = False
+        else:
             status_code = result[0][3]
-        if status_code != 200:
-            is_needed = True
+            if status_code != 200:
+                is_needed = True
         return is_needed
         
     def save_url(self, **url_data):
@@ -137,11 +139,11 @@ class SQLite:
         create table if not exists page (
             id text primary key, 
             url text unique, 
-            content blob, 
             status_code integer, 
             charset text,
             etag text, 
             last_modified text, 
+            content blob, 
             create_time text,
             update_time text)
     '''
@@ -190,6 +192,7 @@ class SQLite:
         cursor = cls.connection.cursor()
         try:
             cursor.execute(sql, value)
+            cls.connection.commit()
         except sqlite3.Error as e:
             print('Fail to execute sql: ' + sql, e.args[0]) 
         else:
@@ -215,67 +218,3 @@ class SQLite:
     def close(cls):
         if cls.connection:
             cls.connection.close()
-
-
-
-if __name__ == '__main__':
-    SQLite.connect()
-    SQLite.create_crawler_tables()
-    
-    # test insert a page
-    def test_insert_page():
-        store = CrawlerStorage()
-        page = {
-                'url' : 'http://baidu.com',
-                'status_code' : 200,
-                'charset' : 'utf-8',
-                'etag' : 'FDSa12-kldjanJK8',
-                'last_modified' : '2014-01-08 19:07:27'
-            }
-        store.save_page(**page)
-    
-    # test query a page
-    def test_query_page():
-        store = CrawlerStorage()
-        url ='http://apache.org'
-        result = store.query_page(url)
-        iterate(result)
-    
-    # test query all pages
-    def test_query_all_pages():
-        store = CrawlerStorage()
-        result = store.query_all_pages()
-        iterate(result)
-            
-    def test_query_all_urls():
-        store = CrawlerStorage()
-        result = store.query_all_urls()
-        iterate(result)
-            
-    def iterate(result):
-        for record in result:
-            print(str(record))
-            
-    def test_is_crawled():
-        store = CrawlerStorage()
-        url ='http://apache.org'
-        is_crawled = store.is_crawled(url)
-        print('is_crawled = ' + str(is_crawled) + ', url = ' + url)
-    
-    # stitch flag for test
-    is_insert = False
-    is_select = False
-    is_crawled = False
-    is_query_all_pages = True
-    is_query_all_urls = True
-        
-    if is_insert:
-        test_insert_page()
-    if is_select:
-        test_query_page()
-    if is_query_all_pages:
-        test_query_all_pages()
-    if is_query_all_urls:
-        test_query_all_urls()
-    if is_crawled:
-        test_is_crawled()
