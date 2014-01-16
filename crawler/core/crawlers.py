@@ -1,7 +1,8 @@
 from abc import ABCMeta
 import re
 
-from crawler.core.common import Crawler, TaskConf, CrawlMode, CrawlPolicy
+from crawler.core.common import Crawler, TaskConf, CrawlMode, CrawlPolicy, \
+    LoggerFactory
 from crawler.core.http import DefaultHttpEngine, HtmlParser
 from crawler.core.storage import CrawlerStorage
 from crawler.core.utils import UniqIdGenerator
@@ -348,7 +349,10 @@ class ResultParser:
         string_data = ''
         data = crawl_result.binary_data
         if data:
-            string_data = data.decode(crawl_result.charset)
+            try:
+                string_data = data.decode(crawl_result.charset)
+            except UnicodeDecodeError as e:
+                print(str(e))
         crawl_result.string_data = string_data
 
 

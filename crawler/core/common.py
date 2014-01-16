@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import copy
+import logging
 import socket
 
 
@@ -262,4 +263,22 @@ class CrawlerManager:
     
     def get_http_engine(self):
         return self._http_engine
+    
+
+class LoggerFactory:
+    '''
+    Logger factory class.
+    http://docs.python.org/3/library/logging.html
+    '''
+    FORMAT = '%(asctime)-15s %(thread)d [%(threadName)s] %(levelname)s %(module)s %(funcName)s %(message)s'
+    logging.basicConfig(format=FORMAT)
+    
+    @classmethod
+    def get_logger(cls, name=None):
+        if not name:
+            name = cls.__.class__.__name__
+        logger = logging.getLogger(name)
+        return logger
+    
+    
     
