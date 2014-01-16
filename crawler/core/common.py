@@ -50,6 +50,7 @@ class TaskConf:
     def __init__(self, domain):
         # process domain or url
         if domain:
+            domain = domain.lower()
             if domain.startswith('https://'):
                 raise ValueError('Unsupported HTTPS link!')
             elif domain.startswith('http://'):
@@ -62,8 +63,11 @@ class TaskConf:
         else:
             raise ValueError('Invalid domain string!')
         if self.domain:
+            if self.domain.startswith('www.'):
+                self.domain = self.domain[4:]
             self.url = 'http://' + self.domain
             self.ip_addr = self.__get_addr_info(self.domain)
+        print('domain = ' + self.domain)
         # initialize default value
         self.max_url_count = -1
         self.priority = 0

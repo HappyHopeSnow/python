@@ -2,7 +2,7 @@ from abc import ABCMeta
 import re
 
 from crawler.core.common import Crawler, TaskConf, CrawlMode, CrawlPolicy
-from crawler.core.http import DefaultHttpEngine
+from crawler.core.http import DefaultHttpEngine, HtmlParser
 from crawler.core.storage import CrawlerStorage
 from crawler.core.utils import UniqIdGenerator
 
@@ -87,12 +87,14 @@ class AbstractCrawlPolicy(CrawlPolicy):
                 # extract and check urls
                 urls = ResultParser.extract_urls(task.crawl_result)
                 # normalize urls
-                urls = ResultParser.normalize_urls(urls)
+                urls = ResultParser.normalize_urls(urls, task.url)
                 # filter urls
+                if not task.task_conf.cross_host_allowed:
+                    urls = ResultParser.filter_urls(urls, task.task_conf.domain)
                 waiting_crawled_urls = filter(self.should_crawl, urls)
                 # build url tasks
                 url_tasks = TaskFactory.build_url_tasks(task, waiting_crawled_urls);
-                print('Extract urls: ref=' + task.url + ', urlsInPage = ' + str(len(url_tasks)))
+                print('Extract urls: ref = ' + task.url + ', urls_in_page = ' + str(len(url_tasks)))
                 for url_task in url_tasks:
                     self.fetch(url_task)
         elif status_code >= 300 and status_code < 400:
@@ -321,46 +323,16 @@ class ResultParser:
         if crawl_result.status_code == 200:
             cls.__get_string_data(crawl_result)
             if len(crawl_result.string_data) > 0:
-                all_urls = re.findall(r"<a.*?href=\s*[\"']*([^\"']+).*?<\/a>", crawl_result.string_data, re.I)
-                for url in all_urls:
-                    if url and cls.__is_valid_url(url.strip()):
-                        urls.append(url)
+                urls = HtmlParser.extract_urls(crawl_result.string_data)
         return urls
     
     @classmethod
-    def __is_valid_url(cls, url): 
-        is_valid = False
-        if url:
-            is_valid = url.startswith('http://') 
-        return is_valid
-        #and url.startswith('#') and url.startswith('/')
+    def normalize_urls(cls, urls, base_url):
+        return HtmlParser.normalize_urls(urls, base_url)
     
     @classmethod
-    def normalize_urls(cls, urls):
-        url_set = set()
-        for url in urls:
-            u = None
-            lowest_index = url.find('#')
-            
-            if  lowest_index != -1:
-                u = url.split('#')[0]
-            else:
-                bad_character_found = False
-                for ch in ResultParser.BAD_CHARACTERS:
-                    if url.find(ch) != -1:
-                        bad_character_found = True
-                        break
-                if not bad_character_found:
-                    u = url
-            # discard bad suffix named url
-            for name in ResultParser.BAD_SUFFIX_NAMES:
-                lowered_url = url.lower()
-                if lowered_url.endswith(name):
-                    continue
-            # collect normalized urls
-            if u:
-                url_set.add(u)
-        return url_set
+    def filter_urls(cls, urls, domain):
+        return filter(lambda url : url.find(domain) != -1, urls)
     
     @classmethod
     def extract_anchors(cls, crawl_result):
