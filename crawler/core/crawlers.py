@@ -1,8 +1,7 @@
 from abc import ABCMeta
 import re
 
-from crawler.core.common import Crawler, TaskConf, CrawlMode, CrawlPolicy, \
-    LoggerFactory
+from crawler.core.common import Crawler, TaskConf, CrawlMode, CrawlPolicy
 from crawler.core.http import DefaultHttpEngine, HtmlParser
 from crawler.core.storage import CrawlerStorage
 from crawler.core.utils import UniqIdGenerator
