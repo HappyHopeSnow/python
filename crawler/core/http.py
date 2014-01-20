@@ -63,7 +63,7 @@ class HtmlParser:
         '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt',
         '.ppt', '.pptx', '.mdf', '.exe', '.css', 
         '.java', '.cpp', '.py', '.rb', '.go', '.php',
-        '.c', '.hpp', '.sh', '.pl', '.clj', '.h'
+        '.c', '.cc', '.hpp', '.sh', '.pl', '.clj', '.h'
     ]
     
     @classmethod

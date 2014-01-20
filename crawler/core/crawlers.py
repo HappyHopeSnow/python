@@ -302,21 +302,6 @@ class ResultParser:
     '''
     Parse result page content crawled by a crawler.
     '''
-    BAD_CHARACTERS = ['\'', '\"', '>', '<', ' ']
-    BAD_SUFFIX_NAMES = [
-        '.zip', '.rar', '.iso', '.gz', '.tar', '.jar', 
-        '.gzip', '.7z', '.cab', '.uue', '.bz2', '.z',
-        '.rmvb', '.mkv', '.mp3', '.mp4', '.mov', '.flv',
-        '.wmv', '.asf', '.csf', '.sts', '.swf', '.avi',
-        '.ts', '.acm', '.adf', '.aiff', '.ani', '.dll', 
-        '.so', '.emf', '.tiff', '.psd', '.pcx', '.wmf',
-        '.png', '.gif', '.bmp', '.ico', '.jpg', '.jpeg',
-        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt',
-        '.ppt', '.pptx', '.mdf', '.exe', '.css', 
-        '.java', '.cpp', '.py', '.rb', '.go', '.php',
-        '.c', '.hpp', '.sh', '.pl', '.clj', '.h'
-    ]
-    
     @classmethod
     def extract_urls(cls, crawl_result):
         urls = []
