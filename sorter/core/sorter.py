@@ -199,6 +199,50 @@ class HeapSorter(Sorter):
                 break
             array[s] = tmp
             
+class RadixSorter(Sorter):
+    '''
+    Radix sorter
+    '''
+    def __init__(self):
+        self.radix = 10
+        
+    def sort(self, array):
+        length = len(array)
+        which_round = 1
+        bucket = [[0 for col in range(length)] for row in range(self.radix)]
+        distance = self.__get_distance(array)
+        temp = 1
+        while which_round<=distance:
+            counter = [0 for x in range(self.radix)]
+            for i in range(length):
+                which = (array[i] // temp) % self.radix
+                bucket[which][counter[which]] = array[i]
+                counter[which] += 1
+            index = 0
+            for i in range(self.radix):
+                if counter[i]!=0:
+                    for j in range(counter[i]):
+                        array[index] = bucket[i][j]
+                        index += 1
+            temp *= self.radix
+            which_round += 1
+            
+
+    def __get_distance(self, array):
+        max_elem = self.__get_max(array)
+        digits = 0
+        temp = max_elem // self.radix
+        while temp != 0:
+            digits += 1
+            temp //= self.radix
+        return digits + 1
+    
+    def __get_max(self, array):
+        max_elem = array[0]
+        for x in range(1, len(array)):
+            if array[x]>max_elem:
+                max_elem = array[x]
+        return max_elem
             
                             
             
@@ -209,10 +253,10 @@ if __name__ == "__main__":
 #     sorter = MergeSorter()
 #     sorter = QuickSorter()
 #     sorter = ShellSorter()
-    sorter = HeapSorter()
-    array = [32, 34, 1, 987, 268, 122]
+#     sorter = HeapSorter()
+    sorter = RadixSorter()
+    array = [94,12,34,76,26,9,0,37,55,76,37,5,68,83,90,37,12,65,76,49]
     sorter.sort(array)
-    for i in array:
-        print(i)
+    print(array)
     
     
